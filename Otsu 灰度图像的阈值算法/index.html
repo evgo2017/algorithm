@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Otsu 灰度图像的自动阈值分割</title>
+</head>
+
+<body>
+    <div>
+        <p>请一次选择一张图片进行测试，因重点在于算法的实现，其余未过多考虑</p>
+    </div>
+    <input id="uploadImg" type="file" onchange="showImg(this)" /><br>
+    <p id="threshold">阈值：</p>
+    <img id="rawImg" src="" alt="">
+    <canvas id="resultImg">
+        Your browser does not support the HTML5 canvas tag.
+    </canvas>
+</body>
+<script>
+    /**
+    * 本来写了很详细的解析，但是某些失误导致注释版丢弃，心痛。
+    * 不过函数的调用顺序，排列顺序，就是逻辑过程。
+    */
+    function showImg(e) {
+        let oShowImg = document.getElementById("showImg"),
+            oRawImg = document.getElementById("rawImg"),
+            oThreshold = document.getElementById("threshold"),
+            oResultImg = document.getElementById("resultImg"),
+            ctx = oResultImg.getContext('2d')
+
+        oRawImg.src = URL.createObjectURL(e.files[0])
+        oRawImg.onload = function () {
+            oResultImg.width = oRawImg.width
+            oResultImg.height = oRawImg.height
+
+            let imageData = getImageData(oRawImg),
+                grayscale = getGrayscale(imageData),
+                histogram = getHistogram(grayscale),
+                prob = getProb(histogram, grayscale.length),
+                threshold = getThreshold(prob)
+
+            oThreshold.innerText += threshold
+            putImageData(imageData, grayscale, threshold, ctx)
+            oResultImg.style.opacity = 1
+        }
+    }
+
+    function getImageData(raw) {
+        let width = raw.width,
+            height = raw.height,
+            c = document.createElement('canvas'),
+            ctx = c.getContext('2d')
+
+        c.width = width
+        c.height = height
+        ctx.drawImage(raw, 0, 0)
+
+        return ctx.getImageData(0, 0, width, height)
+    }
+
+    function getGrayscale(imageData) {
+        let grayscale = [],
+            data = imageData.data
+        for (let i = 0; i < data.length; i += 4) {
+            let r = data[i],
+                g = data[i + 1],
+                b = data[i + 2],
+                // gray = Math.round(0.299*r + 0.587*g + 0.114*b)
+                gray = Math.round((r + g + b) / 3)
+
+            grayscale.push(gray)
+        }
+        return grayscale
+    }
+
+    function getHistogram(grayscale) {
+        let histogram = new Array(256)
+        histogram.fill(0)
+
+        for (let i = 0; i < grayscale.length; i++) {
+            histogram[grayscale[i]]++
+        }
+        return histogram
+    }
+
+    function getProb(histogram, n) {
+        let prob = new Array(256)
+        for (let i = 0; i < 256; i++) {
+            prob[i] = histogram[i] / n
+        }
+        return prob
+    }
+
+    function getThreshold(prob) {
+        return otsu(prob)
+    }
+
+    /**
+    * ICV = PA * (MA - M) * (MA - M) + PB * (MB - M) * (MB - M)
+    * https://blog.csdn.net/liyuanbhu/article/details/49387483
+    */
+    function otsu(prob) {
+        let threshold = 0,
+            M = 0,
+            cum = new Array(256),
+            mean = new Array(256)
+
+        cum[0] = prob[0]
+        mean[0] = 0
+        for (let i = 1; i < 256; i++) {
+            cum[i] = cum[i - 1] + prob[i]
+            mean[i] = mean[i - 1] + i * prob[i]
+        }
+        M = mean[255]
+
+        let max_ICV = 0
+        for (let i = 1; i < 256; i++) {
+            let PA = cum[i],
+                PB = 1 - PA,
+                ICV = 0
+
+            if (PA != 0 && PB != 0) {
+                let MA = mean[i] / PA,
+                    MB = (M - mean[i]) / PB
+
+                ICV = PA * (MA - M) * (MA - M) + PB * (MB - M) * (MB - M)
+
+                if (ICV > max_ICV) {
+                    max_ICV = ICV
+                    threshold = i
+                }
+            }
+        }
+        return threshold
+    }
+
+    function putImageData(imageData, grayscale, threshold, ctx) {
+        let data = imageData.data
+        for (let i = 0; i < data.length; i += 4) {
+            let gray = grayscale[i / 4] > threshold ? 255 : 0
+            data[i] = data[i + 1] = data[i + 2] = gray
+        }
+        ctx.putImageData(imageData, 0, 0)
+    }
+</script>
+
+</html>

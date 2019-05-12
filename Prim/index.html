@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>4.1 实现 Prim 算法</title>
+</head>
+<body>
+	<div id="show">
+        从 A 点开始，最小生成树的顺序是：
+    </div>
+    <p>A = 0， B = 1， C = 2， D = 3， E = 4</p>
+	<img src="./assets/加权连通图.png">
+</body>
+<script type="text/javascript">
+	let min_num = -1, // 两个点之间没有连接
+        max_num = 999, // 最大的权值
+        data = [
+            [min_num, 4, min_num, 5, 3],
+            [4, min_num, 2, 2, min_num],
+            [min_num, 2, min_num, 4, min_num],
+            [5, 2, 4, min_num, 3],
+            [3, min_num, min_num, 3, min_num]
+        ], // 邻接矩阵
+        visited = [] //记录已经探访过的点
+        
+    // num 这个数字是否没有存在于 arr 这个数组内部
+    function noExist(arr, num) {
+        for(let i = 0; i< arr.length; i++) {
+            if(arr[i] == num) {
+                return false
+            }
+        }
+        return true
+    }
+    function Prim(data, num){
+        visited = [] //记录已经探访过的点
+        const n = data.length // 获得顶点数
+        visited[0] = num; //这个点已经被访问（起始点）
+
+        for(let i = 0; i < n-1; i++) {
+            // i 表示第 i 个点
+            let min = max_num // 设置最大的权值，为获得最小的权值
+            for(let j = 0; j < n ; j++) {
+                // 如果 i 和 j 点之间有连接，并且 j 点没有被访问过，与 i 点的连接的最小权值
+                if(data[visited[i]][j] > min_num && noExist(visited, j) && data[visited[i]][j] < min) {
+                    min = data[visited[i]][j]
+                    visited[i+1] =  j
+                }
+            }
+        }
+    }
+    Prim(data, 0)
+    document.getElementById("show").innerHTML += visited
+</script>
+</html>
