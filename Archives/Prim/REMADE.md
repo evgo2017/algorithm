@@ -1,4 +1,9 @@
-[TOC]
+---
+title: Prim
+data: 2018-08-31
+updated: 2018-08-31
+description: data structure works
+---
 
 ## 一、概念
 
